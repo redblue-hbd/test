@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web スクレイパー</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <h1>Web スクレイパー</h1>
+
+    <form id="scrapeForm">
+      <div class="form-group">
+        <label for="urlInput">URL</label>
+        <input type="text" id="urlInput" placeholder="https://example.com" autocomplete="off">
+      </div>
+
+      <div class="form-group">
+        <label>カスタムセレクター（任意）</label>
+        <div id="selectorList">
+          <div class="selector-row">
+            <input type="text" class="selector-label" placeholder="ラベル（例: 価格）">
+            <input type="text" class="selector-value" placeholder="CSSセレクター（例: .price）">
+            <button type="button" class="btn-remove" onclick="removeSelector(this)">×</button>
+          </div>
+        </div>
+        <button type="button" id="addSelector" onclick="addSelector()">+ セレクター追加</button>
+      </div>
+
+      <button type="submit" id="submitBtn">スクレイピング実行</button>
+    </form>
+
+    <div id="error" class="error hidden"></div>
+    <div id="loading" class="loading hidden">スクレイピング中...</div>
+
+    <div id="results" class="hidden">
+      <div class="section">
+        <h2>基本情報</h2>
+        <table id="basicTable">
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="section" id="customSection">
+        <h2>カスタムセレクター結果</h2>
+        <div id="customResults"></div>
+      </div>
+
+      <div class="section">
+        <h2>見出し (<span id="headingCount">0</span>)</h2>
+        <ul id="headingList" class="item-list"></ul>
+      </div>
+
+      <div class="section">
+        <h2>リンク (<span id="linkCount">0</span>)</h2>
+        <ul id="linkList" class="item-list link-list"></ul>
+      </div>
+
+      <div class="section">
+        <h2>画像 (<span id="imageCount">0</span>)</h2>
+        <div id="imageGrid" class="image-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

@@ -1,6 +1,5 @@
 """
-Yahoo天気 品川区 花粉情報スクレイパー
-URL: https://weather.yahoo.co.jp/weather/pollen/3/13/13109/
+Yahoo天気 花粉情報スクレイパー（エリア対応）
 
 Playwrightを使用してJavaScript描画ページを取得し、
 花粉データ（スギ・ヒノキ等）を抽出する。
@@ -13,8 +12,15 @@ from typing import Optional
 
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
-# 品川区の花粉情報ページ
-POLLEN_URL = "https://weather.yahoo.co.jp/weather/pollen/3/13/13109/"
+# エリア別 Yahoo天気 花粉ページURL
+AREA_URLS = {
+    "shinagawa": "https://weather.yahoo.co.jp/weather/pollen/3/13/13109/",
+    "shinjuku":  "https://weather.yahoo.co.jp/weather/pollen/3/13/13104/",
+}
+AREA_NAMES = {
+    "shinagawa": "品川区",
+    "shinjuku": "新宿区",
+}
 
 # 花粉レベルの数値変換マップ
 LEVEL_MAP = {
@@ -37,9 +43,12 @@ def _level_to_int(text: str) -> Optional[int]:
     return LEVEL_MAP.get(text, None)
 
 
-def scrape_pollen() -> dict:
+def scrape_pollen(area: str = "shinagawa") -> dict:
     """
-    Yahoo天気から品川区の花粉データを取得する。
+    Yahoo天気から指定エリアの花粉データを取得する。
+
+    Args:
+        area: "shinagawa" | "shinjuku"
 
     Returns:
         {
@@ -47,21 +56,17 @@ def scrape_pollen() -> dict:
             "area": "品川区",
             "url": "...",
             "today": {"date": "2024-03-15", "cedar": 3, "cypress": 1},
-            "forecast": [
-                {"date": "2024-03-15", "cedar": 3, "cypress": 1},
-                ...
-            ],
-            "season_trend": [
-                {"date": "2024-01-01", "cedar": 0, "cypress": 0},
-                ...
-            ],
+            "forecast": [...],
+            "season_trend": [...],
             "error": null
         }
     """
+    url = AREA_URLS.get(area, AREA_URLS["shinagawa"])
+    area_name = AREA_NAMES.get(area, "品川区")
     result = {
         "scraped_at": datetime.now().isoformat(timespec="seconds"),
-        "area": "品川区",
-        "url": POLLEN_URL,
+        "area": area_name,
+        "url": url,
         "today": None,
         "forecast": [],
         "season_trend": [],
@@ -85,24 +90,25 @@ def scrape_pollen() -> dict:
             intercepted = []
 
             def on_response(response):
-                url = response.url
+                resp_url = response.url
                 content_type = response.headers.get("content-type", "")
+                area_code = url.rstrip("/").split("/")[-1]
                 if "json" in content_type and (
-                    "pollen" in url.lower()
-                    or "kafun" in url.lower()
-                    or "forecast" in url.lower()
-                    or "13109" in url
+                    "pollen" in resp_url.lower()
+                    or "kafun" in resp_url.lower()
+                    or "forecast" in resp_url.lower()
+                    or area_code in resp_url
                 ):
                     try:
                         intercepted.append(
-                            {"url": url, "data": response.json()}
+                            {"url": resp_url, "data": response.json()}
                         )
                     except Exception:
                         pass
 
             page.on("response", on_response)
 
-            page.goto(POLLEN_URL, wait_until="networkidle", timeout=30000)
+            page.goto(url, wait_until="networkidle", timeout=30000)
 
             # ページが十分にレンダリングされるまで待機
             try:

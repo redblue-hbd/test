@@ -3,122 +3,198 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>品川区 花粉年間推移</title>
+  <title>花粉ダッシュボード</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <div class="header-left">
-        <h1>🌸 品川区 花粉年間推移</h1>
-        <p class="subtitle">Yahoo天気データ（スギ・ヒノキ）</p>
+  <!-- ========== HEADER ========== -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-icon">🌸</span>
+      <h1>花粉飛散ダッシュボード</h1>
+    </div>
+    <div class="topbar-center">
+      <!-- エリア切替 -->
+      <div class="area-tabs">
+        <button class="area-tab active" data-area="shinagawa">品川区</button>
+        <button class="area-tab" data-area="shinjuku">新宿区</button>
       </div>
-      <div class="header-right">
-        <span id="lastUpdate" class="last-update"></span>
-      </div>
-    </header>
+    </div>
+    <div class="topbar-right">
+      <span id="lastUpdate" class="last-update-text"></span>
+      <button class="btn-demo" onclick="loadDemoData()">デモデータ</button>
+      <button class="btn-scrape" id="scrapeBtn" onclick="runScrape()">↻ データ取得</button>
+    </div>
+  </header>
 
-    <!-- コントロールバー -->
-    <div class="controls">
-      <div class="control-group">
-        <label>年</label>
-        <select id="yearSelect"></select>
+  <div class="dashboard">
+
+    <!-- ========== ROW 1: KPI ゲージ ========== -->
+    <div class="row kpi-row">
+      <div class="panel kpi-panel">
+        <div class="kpi-label">本日のスギ花粉</div>
+        <div class="gauge-wrap">
+          <canvas id="gaugeCedar"></canvas>
+          <div class="gauge-center">
+            <span class="gauge-val" id="gaugeCedarVal">—</span>
+            <span class="gauge-unit" id="gaugeCedarLabel">—</span>
+          </div>
+        </div>
+        <div class="kpi-sub" id="kpiCedarSub">データなし</div>
       </div>
-      <div class="control-group">
-        <label>表示種別</label>
-        <div class="toggle-group">
-          <button class="toggle-btn active" data-type="both">両方</button>
-          <button class="toggle-btn" data-type="cedar">スギのみ</button>
-          <button class="toggle-btn" data-type="cypress">ヒノキのみ</button>
+
+      <div class="panel kpi-panel">
+        <div class="kpi-label">本日のヒノキ花粉</div>
+        <div class="gauge-wrap">
+          <canvas id="gaugeCypress"></canvas>
+          <div class="gauge-center">
+            <span class="gauge-val" id="gaugeCypressVal">—</span>
+            <span class="gauge-unit" id="gaugeCypressLabel">—</span>
+          </div>
+        </div>
+        <div class="kpi-sub" id="kpiCypressSub">データなし</div>
+      </div>
+
+      <div class="panel kpi-panel stat-panel">
+        <div class="kpi-label">シーズン統計</div>
+        <div class="stat-grid">
+          <div class="stat-item">
+            <div class="stat-val" id="statDays">—</div>
+            <div class="stat-desc">データ日数</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-val cedar-col" id="statCedarPeak">—</div>
+            <div class="stat-desc">スギ ピーク</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-val cypress-col" id="statCypressPeak">—</div>
+            <div class="stat-desc">ヒノキ ピーク</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-val" id="statCedarAvg">—</div>
+            <div class="stat-desc">スギ 平均</div>
+          </div>
         </div>
       </div>
-      <div class="control-group">
-        <label>グラフ種類</label>
-        <div class="toggle-group">
-          <button class="toggle-btn active" data-chart="line">折れ線</button>
-          <button class="toggle-btn" data-chart="bar">棒グラフ</button>
+    </div>
+
+    <!-- ========== ROW 2: メインチャート ========== -->
+    <div class="row main-chart-row">
+      <div class="panel main-chart-panel">
+        <!-- コントロール -->
+        <div class="chart-header">
+          <div class="chart-title-group">
+            <span class="chart-title" id="mainChartTitle">年間花粉推移</span>
+            <span class="area-badge" id="areaBadge">品川区</span>
+          </div>
+          <div class="chart-controls">
+            <div class="ctrl-group">
+              <label>年</label>
+              <select id="yearSelect"></select>
+            </div>
+            <div class="ctrl-group">
+              <label>種別</label>
+              <div class="seg-ctrl">
+                <button class="seg active" data-type="both">両方</button>
+                <button class="seg" data-type="cedar">スギ</button>
+                <button class="seg" data-type="cypress">ヒノキ</button>
+              </div>
+            </div>
+            <div class="ctrl-group">
+              <label>グラフ</label>
+              <div class="seg-ctrl">
+                <button class="seg active" data-chart="bar">棒</button>
+                <button class="seg" data-chart="line">線</button>
+              </div>
+            </div>
+            <div class="ctrl-group">
+              <label>月</label>
+              <select id="monthFilter">
+                <option value="all">全期間</option>
+                <option value="1">1月</option>
+                <option value="2">2月</option>
+                <option value="3">3月</option>
+                <option value="4">4月</option>
+                <option value="5">5月</option>
+              </select>
+            </div>
+            <button class="icon-btn" onclick="resetZoom()" title="ズームリセット">⊞</button>
+          </div>
+        </div>
+        <div class="chart-body">
+          <div id="mainLoading" class="chart-loading hidden">
+            <div class="spinner"></div><span id="mainLoadingMsg">読込中...</span>
+          </div>
+          <canvas id="mainChart"></canvas>
+        </div>
+        <div class="level-legend">
+          <span class="leg-title">花粉レベル：</span>
+          <span class="lchip l0">0 なし</span>
+          <span class="lchip l1">1 少ない</span>
+          <span class="lchip l2">2 やや多い</span>
+          <span class="lchip l3">3 多い</span>
+          <span class="lchip l4">4 非常に多い</span>
         </div>
       </div>
-      <div class="control-group">
-        <label>期間フィルター</label>
-        <select id="monthFilter">
-          <option value="all">全期間</option>
-          <option value="1">1月</option>
-          <option value="2">2月</option>
-          <option value="3">3月</option>
-          <option value="4">4月</option>
-          <option value="5">5月</option>
-          <option value="6">6月〜</option>
-        </select>
+    </div>
+
+    <!-- ========== ROW 3: 前年比較 ========== -->
+    <div class="row compare-row">
+      <div class="panel compare-chart-panel">
+        <div class="chart-header">
+          <div class="chart-title-group">
+            <span class="chart-title">前年比較</span>
+            <span class="area-badge compare-badge" id="compareBadge">品川区</span>
+          </div>
+          <div class="chart-controls">
+            <div class="ctrl-group">
+              <label>比較年</label>
+              <select id="compareYearA"></select>
+              <span class="vs-label">vs</span>
+              <select id="compareYearB"></select>
+            </div>
+            <div class="ctrl-group">
+              <label>種別</label>
+              <div class="seg-ctrl">
+                <button class="seg active" data-compare-type="cedar">スギ</button>
+                <button class="seg" data-compare-type="cypress">ヒノキ</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="chart-body compare-body">
+          <canvas id="compareChart"></canvas>
+        </div>
       </div>
-      <div class="control-group actions">
-        <button id="scrapeBtn" class="btn-primary" onclick="runScrape()">
-          <span class="btn-icon">↻</span> 最新データ取得
-        </button>
-        <button class="btn-secondary" onclick="loadDemoData()">デモデータ</button>
-        <button class="btn-secondary" onclick="resetZoom()">ズームリセット</button>
+
+      <!-- 前年比サマリー -->
+      <div class="panel diff-panel">
+        <div class="chart-title" style="margin-bottom:16px">前年比サマリー</div>
+        <div id="diffSummary" class="diff-summary">
+          <div class="diff-placeholder">比較データを読み込んでください</div>
+        </div>
       </div>
     </div>
 
-    <!-- サマリーカード -->
-    <div class="summary-cards" id="summaryCards">
-      <div class="card">
-        <div class="card-label">データ日数</div>
-        <div class="card-value" id="totalDays">—</div>
-      </div>
-      <div class="card cedar">
-        <div class="card-label">スギ ピーク</div>
-        <div class="card-value" id="cedarPeak">—</div>
-        <div class="card-sub" id="cedarPeakDate"></div>
-      </div>
-      <div class="card cypress">
-        <div class="card-label">ヒノキ ピーク</div>
-        <div class="card-value" id="cypressPeak">—</div>
-        <div class="card-sub" id="cypressPeakDate"></div>
-      </div>
-      <div class="card">
-        <div class="card-label">スギ 平均（シーズン）</div>
-        <div class="card-value" id="cedarAvg">—</div>
-      </div>
+    <!-- ========== ROW 4: データテーブル ========== -->
+    <div class="row table-row">
+      <details class="panel table-panel">
+        <summary>データ一覧 <span id="tableCount"></span></summary>
+        <div class="tbl-wrap">
+          <table id="dataTable">
+            <thead><tr><th>日付</th><th>スギ</th><th>ヒノキ</th></tr></thead>
+            <tbody id="dataTableBody"></tbody>
+          </table>
+        </div>
+      </details>
     </div>
 
-    <!-- グラフ -->
-    <div class="chart-wrapper">
-      <div id="loadingOverlay" class="loading-overlay hidden">
-        <div class="spinner"></div>
-        <div id="loadingMsg">データを取得中...</div>
-      </div>
-      <canvas id="pollenChart"></canvas>
-    </div>
+  </div><!-- /dashboard -->
 
-    <!-- 凡例 -->
-    <div class="level-legend">
-      <span class="legend-title">花粉レベル：</span>
-      <span class="level-chip l0">0 なし</span>
-      <span class="level-chip l1">1 少ない</span>
-      <span class="level-chip l2">2 やや多い</span>
-      <span class="level-chip l3">3 多い</span>
-      <span class="level-chip l4">4 非常に多い</span>
-    </div>
-
-    <!-- データテーブル（折りたたみ） -->
-    <details class="data-table-section">
-      <summary>データ一覧</summary>
-      <div class="table-wrapper">
-        <table id="dataTable">
-          <thead>
-            <tr><th>日付</th><th>スギ</th><th>ヒノキ</th></tr>
-          </thead>
-          <tbody id="dataTableBody"></tbody>
-        </table>
-      </div>
-    </details>
-
-    <div id="errorMsg" class="error-msg hidden"></div>
-  </div>
+  <div id="toastMsg" class="toast hidden"></div>
 
   <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>

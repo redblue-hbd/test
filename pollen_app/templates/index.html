@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>品川区 花粉年間推移</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-left">
+        <h1>🌸 品川区 花粉年間推移</h1>
+        <p class="subtitle">Yahoo天気データ（スギ・ヒノキ）</p>
+      </div>
+      <div class="header-right">
+        <span id="lastUpdate" class="last-update"></span>
+      </div>
+    </header>
+
+    <!-- コントロールバー -->
+    <div class="controls">
+      <div class="control-group">
+        <label>年</label>
+        <select id="yearSelect"></select>
+      </div>
+      <div class="control-group">
+        <label>表示種別</label>
+        <div class="toggle-group">
+          <button class="toggle-btn active" data-type="both">両方</button>
+          <button class="toggle-btn" data-type="cedar">スギのみ</button>
+          <button class="toggle-btn" data-type="cypress">ヒノキのみ</button>
+        </div>
+      </div>
+      <div class="control-group">
+        <label>グラフ種類</label>
+        <div class="toggle-group">
+          <button class="toggle-btn active" data-chart="line">折れ線</button>
+          <button class="toggle-btn" data-chart="bar">棒グラフ</button>
+        </div>
+      </div>
+      <div class="control-group">
+        <label>期間フィルター</label>
+        <select id="monthFilter">
+          <option value="all">全期間</option>
+          <option value="1">1月</option>
+          <option value="2">2月</option>
+          <option value="3">3月</option>
+          <option value="4">4月</option>
+          <option value="5">5月</option>
+          <option value="6">6月〜</option>
+        </select>
+      </div>
+      <div class="control-group actions">
+        <button id="scrapeBtn" class="btn-primary" onclick="runScrape()">
+          <span class="btn-icon">↻</span> 最新データ取得
+        </button>
+        <button class="btn-secondary" onclick="loadDemoData()">デモデータ</button>
+        <button class="btn-secondary" onclick="resetZoom()">ズームリセット</button>
+      </div>
+    </div>
+
+    <!-- サマリーカード -->
+    <div class="summary-cards" id="summaryCards">
+      <div class="card">
+        <div class="card-label">データ日数</div>
+        <div class="card-value" id="totalDays">—</div>
+      </div>
+      <div class="card cedar">
+        <div class="card-label">スギ ピーク</div>
+        <div class="card-value" id="cedarPeak">—</div>
+        <div class="card-sub" id="cedarPeakDate"></div>
+      </div>
+      <div class="card cypress">
+        <div class="card-label">ヒノキ ピーク</div>
+        <div class="card-value" id="cypressPeak">—</div>
+        <div class="card-sub" id="cypressPeakDate"></div>
+      </div>
+      <div class="card">
+        <div class="card-label">スギ 平均（シーズン）</div>
+        <div class="card-value" id="cedarAvg">—</div>
+      </div>
+    </div>
+
+    <!-- グラフ -->
+    <div class="chart-wrapper">
+      <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <div id="loadingMsg">データを取得中...</div>
+      </div>
+      <canvas id="pollenChart"></canvas>
+    </div>
+
+    <!-- 凡例 -->
+    <div class="level-legend">
+      <span class="legend-title">花粉レベル：</span>
+      <span class="level-chip l0">0 なし</span>
+      <span class="level-chip l1">1 少ない</span>
+      <span class="level-chip l2">2 やや多い</span>
+      <span class="level-chip l3">3 多い</span>
+      <span class="level-chip l4">4 非常に多い</span>
+    </div>
+
+    <!-- データテーブル（折りたたみ） -->
+    <details class="data-table-section">
+      <summary>データ一覧</summary>
+      <div class="table-wrapper">
+        <table id="dataTable">
+          <thead>
+            <tr><th>日付</th><th>スギ</th><th>ヒノキ</th></tr>
+          </thead>
+          <tbody id="dataTableBody"></tbody>
+        </table>
+      </div>
+    </details>
+
+    <div id="errorMsg" class="error-msg hidden"></div>
+  </div>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
